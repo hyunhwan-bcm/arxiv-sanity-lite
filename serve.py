@@ -409,7 +409,7 @@ def sub(pid=None, tag=None):
 
         # if the user doesn't have any tags, there is nothing to do
         if not g.user in tags_db:
-            return "user has no library of tags ¯\_(ツ)_/¯"
+            return "user has no library of tags ¯\\_(ツ)_/¯"
 
         # fetch the user library object
         d = tags_db[g.user]
