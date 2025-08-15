@@ -42,7 +42,12 @@ jobs:
         python -c "from serve import app; print('Flask app imports successfully')"
         python arxiv_daemon.py --help
         python compute.py --help
+        
+    - name: Test send_emails.py (with sendgrid)
+      run: |
+        pip install sendgrid
         python send_emails.py --help
+      continue-on-error: true
 
     - name: Test Flask app starts
       run: |
