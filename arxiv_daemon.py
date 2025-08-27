@@ -54,7 +54,16 @@ if __name__ == '__main__':
                 papers = parse_response(resp)
                 time.sleep(0.5)
                 if len(papers) == 100:
-                    break # otherwise we have to try again
+                    break # we got a full batch
+                elif len(papers) > 0:
+                    logging.info("got %d papers (less than 100), continuing anyway" % len(papers))
+                    break # we got some papers, continue
+                else:
+                    logging.warning("got 0 papers, will retry...")
+                    ntried += 1
+                    if ntried > 10:
+                        logging.error("got 0 papers 10 times in a row, stopping this batch")
+                        break
             except Exception as e:
                 logging.warning(e)
                 logging.warning("will try again in a bit...")
@@ -62,31 +71,35 @@ if __name__ == '__main__':
                 if ntried > 1000:
                     logging.error("ok we tried 1,000 times, something is srsly wrong. exitting.")
                     sys.exit()
-                time.sleep(2 + random.uniform(0, 4))
+            time.sleep(2 + random.uniform(0, 4))
 
         # process the batch of retrieved papers
         nhad, nnew, nreplace = 0, 0, 0
-        for p in papers:
-            pid = p['_id']
-            if pid in pdb:
-                if p['_time'] > pdb[pid]['_time']:
-                    # replace, this one is newer
-                    store(p)
-                    nreplace += 1
+        if len(papers) > 0:
+            for p in papers:
+                pid = p['_id']
+                if pid in pdb:
+                    if p['_time'] > pdb[pid]['_time']:
+                        # replace, this one is newer
+                        store(p)
+                        nreplace += 1
+                    else:
+                        # we already had this paper, nothing to do
+                        nhad += 1
                 else:
-                    # we already had this paper, nothing to do
-                    nhad += 1
-            else:
-                # new, simple store into database
-                store(p)
-                nnew += 1
-        prevn = len(pdb)
-        total_updated += nreplace + nnew
+                    # new, simple store into database
+                    store(p)
+                    nnew += 1
+            prevn = len(pdb)
+            total_updated += nreplace + nnew
 
-        # some diagnostic information on how things are coming along
-        logging.info(papers[0]['_time_str'])
-        logging.info("k=%d, out of %d: had %d, replaced %d, new %d. now have: %d" %
-             (k, len(papers), nhad, nreplace, nnew, prevn))
+            # some diagnostic information on how things are coming along
+            logging.info(papers[0]['_time_str'])
+            logging.info("k=%d, out of %d: had %d, replaced %d, new %d. now have: %d" %
+                 (k, len(papers), nhad, nreplace, nnew, prevn))
+        else:
+            logging.warning("no papers in this batch, skipping processing")
+            continue
 
         # early termination criteria
         if nnew == 0:

@@ -144,6 +144,14 @@ def svm_rank(tags: str = '', pid: str = '', C: float = 0.01):
             if tag in tags_filter_to:
                 for pid in pids:
                     y[ptoi[pid]] = 1.0
+        
+        # If no user tags exist, use recent papers as positive examples
+        if y.sum() == 0 and tags == 'all':
+            recent_pids, _ = time_rank()
+            # Use top 50 most recent papers as positive examples
+            for pid in recent_pids[:50]:
+                if pid in ptoi:
+                    y[ptoi[pid]] = 1.0
 
     if y.sum() == 0:
         return [], [], [] # there are no positives?
